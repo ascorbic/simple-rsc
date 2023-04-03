@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 import { createElement } from 'react';
 import { createRouter } from '@hattip/router';
+import { crossStreams } from './streams.js';
 import * as ReactServerDom from 'react-server-dom-webpack/server.browser';
+import * as ReactClient from 'react-server-dom-webpack/client.browser';
+import * as ReactServer from 'react-dom/server.browser';
+
 import { readClientComponentMap, resolveClientDist, resolveServerDist } from './utils.js';
 
 const server = createRouter();
@@ -26,14 +30,32 @@ server.get('/rsc', async ({ request }) => {
 	// @see './build.js'
 	const clientComponentMap = await readClientComponentMap();
 
+	globalThis.__webpack_require__ = (id) => {
+		return import('..' + id);
+	};
+
 	// 👀 This is where the magic happens!
 	// Render the server component tree to a stream.
 	// This renders your server components in real time and
 	// sends each component to the browser as soon as its resolved.
-	const stream = ReactServerDom.renderToReadableStream(Page, clientComponentMap);
+	const flightStream = ReactServerDom.renderToReadableStream(Page, clientComponentMap);
+
+	// split the stream into two streams using "tee"
+	// one for the html and one for the data
+	const [htmlDataStream, rscDataStream] = flightStream.tee();
+
+	const rscComponent = await ReactClient.createFromReadableStream(
+		htmlDataStream,
+		clientComponentMap
+	);
+
+	const htmlStream = await ReactServer.renderToReadableStream(rscComponent, {});
+
+	const stream = crossStreams(rscDataStream, htmlStream);
+
 	return new Response(stream, {
 		// "Content-type" based on https://github.com/facebook/react/blob/main/fixtures/flight/server/global.js#L159
-		headers: { 'Content-type': 'text/x-component' }
+		headers: { 'Content-type': 'text/html' }
 	});
 });
 

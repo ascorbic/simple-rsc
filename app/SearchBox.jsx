@@ -1,15 +1,15 @@
 'use client';
-import { useTransition } from 'react';
+// import { useTransition } from 'react';
 
 /** @param {{ search: string }} props */
 export default function SearchBox({ search: initialSearch }) {
-	const [isPending, startTransition] = useTransition();
+	// const [isPending, startTransition] = useTransition();
 
 	function onChange(e) {
-		startTransition(() => {
-			// @ts-expect-error Property 'router' does not exist on type 'Window & typeof globalThis'.
-			window.router.navigate(`?search=${e.target.value}`);
-		});
+		// startTransition(() => {
+		// 	// @ts-expect-error Property 'router' does not exist on type 'Window & typeof globalThis'.
+		// 	window.router.navigate(`?search=${e.target.value}`);
+		// });
 	}
 	return (
 		<>
@@ -21,8 +21,8 @@ export default function SearchBox({ search: initialSearch }) {
 			/>
 			<span
 				className={[
-					'ml-2 transition-opacity delay-100 duration-75',
-					isPending ? 'opacity-100' : 'opacity-0'
+					'ml-2 transition-opacity delay-100 duration-75'
+					// isPending ? 'opacity-100' : 'opacity-0'
 				]
 					.filter(Boolean)
 					.join(' ')}
